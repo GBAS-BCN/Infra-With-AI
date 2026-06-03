@@ -165,6 +165,11 @@ Install_GH_CLI() {
 }
 
 Install_Devbox() {
+    # PRE-FIX: Forcefully fix permissions from any aborted previous installations
+    if [[ -f /usr/local/bin/devbox ]]; then
+        chmod 755 /usr/local/bin/devbox
+    fi
+
     if su - "$REAL_USER" -c "command -v devbox >/dev/null 2>&1"; then
         Show 0 "Devbox is already installed."
     else
@@ -191,7 +196,7 @@ Install_Devbox() {
         curl -fsSL https://get.jetpack.io/devbox | FORCE=1 bash
         
         # Ensure the binary is executable for standard users
-        chmod +x /usr/local/bin/devbox
+        chmod 755 /usr/local/bin/devbox
         
         ColorReset
         Show 0 "Devbox installed successfully."
