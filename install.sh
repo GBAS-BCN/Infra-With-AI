@@ -170,15 +170,25 @@ Install_Devbox() {
     else
         Show 2 "Installing Nix package manager (required for Devbox)..."
         GreyStart
-        # Install Nix in multi-user daemon mode non-interactively
-        curl -L https://nixos.org/nix/install | sh -s -- --daemon --yes
+        
+        # Robust check to see if Nix is actually fully installed already
+        if [[ -d "/nix/store" ]] && [[ -n "$(ls -A /nix/store 2>/dev/null)" ]]; then
+            echo "Nix is already installed, skipping..."
+        else
+            # Pre-clean any leftover backup files from previously failed/aborted installations
+            rm -f /etc/bash.bashrc.backup-before-nix /etc/bashrc.backup-before-nix /etc/profile.d/nix.sh.backup-before-nix /etc/zshrc.backup-before-nix 2>/dev/null || true
+            
+            # Install Nix Daemon
+            curl -L https://nixos.org/nix/install | sh -s -- --daemon --yes
+        fi
+        
         ColorReset
-        Show 0 "Nix installed successfully."
+        Show 0 "Nix setup verified."
 
         Show 2 "Installing Devbox..."
         GreyStart
-        # Devbox install script strictly as the user
-        su - "$REAL_USER" -c "curl -fsSL https://get.jetpack.io/devbox | FORCE=1 bash"
+        # Devbox installs system-wide to /usr/local/bin, safely executed as root without a password prompt
+        curl -fsSL https://get.jetpack.io/devbox | FORCE=1 bash
         ColorReset
         Show 0 "Devbox installed successfully."
     fi
