@@ -165,42 +165,38 @@ Install_GH_CLI() {
 }
 
 Install_Devbox() {
-    # PRE-FIX: Forcefully fix permissions from any aborted previous installations
-    if [[ -f /usr/local/bin/devbox ]]; then
-        chmod 755 /usr/local/bin/devbox
-    fi
-
-    if su - "$REAL_USER" -c "command -v devbox >/dev/null 2>&1"; then
-        Show 0 "Devbox is already installed."
+    Show 2 "Verifying Nix package manager..."
+    GreyStart
+    
+    # Robust check to see if Nix is actually fully installed already
+    if [[ -d "/nix/store" ]] && [[ -n "$(ls -A /nix/store 2>/dev/null)" ]]; then
+        echo "Nix is already installed, skipping..."
     else
-        Show 2 "Installing Nix package manager (required for Devbox)..."
-        GreyStart
+        # Pre-clean any leftover backup files from previously failed/aborted installations
+        rm -f /etc/bash.bashrc.backup-before-nix /etc/bashrc.backup-before-nix /etc/profile.d/nix.sh.backup-before-nix /etc/zshrc.backup-before-nix 2>/dev/null || true
         
-        # Robust check to see if Nix is actually fully installed already
-        if [[ -d "/nix/store" ]] && [[ -n "$(ls -A /nix/store 2>/dev/null)" ]]; then
-            echo "Nix is already installed, skipping..."
-        else
-            # Pre-clean any leftover backup files from previously failed/aborted installations
-            rm -f /etc/bash.bashrc.backup-before-nix /etc/bashrc.backup-before-nix /etc/profile.d/nix.sh.backup-before-nix /etc/zshrc.backup-before-nix 2>/dev/null || true
-            
-            # Install Nix Daemon
-            curl -L https://nixos.org/nix/install | sh -s -- --daemon --yes
-        fi
-        
-        ColorReset
-        Show 0 "Nix setup verified."
-
-        Show 2 "Installing Devbox..."
-        GreyStart
-        # Devbox installs system-wide to /usr/local/bin, safely executed as root without a password prompt
-        curl -fsSL https://get.jetpack.io/devbox | FORCE=1 bash
-        
-        # Ensure the binary is executable for standard users
-        chmod 755 /usr/local/bin/devbox
-        
-        ColorReset
-        Show 0 "Devbox installed successfully."
+        # Install Nix Daemon
+        curl -L https://nixos.org/nix/install | sh -s -- --daemon --yes
     fi
+    
+    ColorReset
+    Show 0 "Nix setup verified."
+
+    Show 2 "Installing Devbox..."
+    GreyStart
+    
+    # Force remove any corrupted/mis-permissioned devbox installs from previous runs
+    rm -rf /usr/local/bin/devbox
+    
+    # Devbox installs system-wide to /usr/local/bin, safely executed as root without a password prompt
+    curl -fsSL https://get.jetpack.io/devbox | FORCE=1 bash
+    
+    # Ensure the binary is strictly owned by root but executable by all users
+    chown root:root /usr/local/bin/devbox
+    chmod 755 /usr/local/bin/devbox
+    
+    ColorReset
+    Show 0 "Devbox installed successfully."
 }
 
 Clone_And_Setup_Repo() {
@@ -214,6 +210,13 @@ Clone_And_Setup_Repo() {
         su - "$REAL_USER" -c "git clone https://github.com/vfarcic/infra-with-ai $REPO_DIR"
     fi
 
+    # FAILSAFE: Ensure the standard user truly owns the repo and all Devbox cache/config folders.
+    # If the script failed halfway previously, these folders might be owned by root, causing "Permission Denied".
+    chown -R "$REAL_USER:$REAL_USER" "$REPO_DIR"
+    chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/devbox" 2>/dev/null || true
+    chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/devbox" 2>/dev/null || true
+    chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.cache/devbox" 2>/dev/null || true
+
     Show 0 "Repository prepared."
 
     Show 2 "Making setup script executable..."
@@ -221,9 +224,9 @@ Clone_And_Setup_Repo() {
 
     Show 2 "Executing Devbox environment setup via Nushell..."
     # We use devbox run to execute commands *inside* the configured nix environment.
-    # It will automatically install kind, nu, and other tools declared in devbox.json
+    # We explicitly use the absolute path /usr/local/bin/devbox to avoid PATH misresolutions.
     GreyStart
-    su - "$REAL_USER" -c "cd $REPO_DIR && devbox run -- nu ./dot.nu setup"
+    su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup"
     ColorReset
     Show 0 "Infrastructure setup completed."
 
