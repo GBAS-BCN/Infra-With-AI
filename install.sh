@@ -189,6 +189,10 @@ Install_Devbox() {
         GreyStart
         # Devbox installs system-wide to /usr/local/bin, safely executed as root without a password prompt
         curl -fsSL https://get.jetpack.io/devbox | FORCE=1 bash
+        
+        # Ensure the binary is executable for standard users
+        chmod +x /usr/local/bin/devbox
+        
         ColorReset
         Show 0 "Devbox installed successfully."
     fi
