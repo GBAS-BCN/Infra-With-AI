@@ -15,9 +15,9 @@ echo -e "\e[0m\c"
 
 # shellcheck disable=SC2016
 echo '
- /$$$$$$            /$$$$$$                                         /$$      /$$ /$$   /$$     /$$                /$$$$$$  /$$$$$$
-|_  $$_/           /$$__  $$                                       | $$  /$ | $$|__/  | $$    | $$               /$$__  $$|_  $$_/
-  | $$   /$$$$$$$ | $$  \__//$$$$$$  /$$$$$$         | $$ /$$$| $$ /$$ /$$$$$$  | $$$$$$$        | $$  \ $$  | $$  
+ /$$$$$$            /$$$$$$                           /$$      /$$ /$$   /$$     /$$                /$$$$$$  /$$$$$$
+|_  $$_/           /$$__  $$                         | $$  /$ | $$|__/  | $$    | $$               /$$__  $$|_  $$_/
+  | $$   /$$$$$$$ | $$  \__//$$$$$$  /$$$$$$         | $$ /$$$| $$ /$$ /$$$$$$  | $$$$$$$         | $$  \ $$  | $$  
   | $$  | $$__  $$| $$$$   /$$__  $$|____  $$ /$$$$$$| $$/$$ $$ $$| $$|_  $$_/  | $$__  $$ /$$$$$$| $$$$$$$$  | $$  
   | $$  | $$  \ $$| $$_/  | $$  \__/ /$$$$$$$|______/| $$$$_  $$$$| $$  | $$    | $$  \ $$|______/| $$__  $$  | $$  
   | $$  | $$  | $$| $$    | $$      /$$__  $$        | $$$/ \  $$$| $$  | $$ /$$| $$  | $$        | $$  | $$  | $$  
@@ -253,8 +253,13 @@ Clone_And_Setup_Repo() {
 
     Show 2 "Executing Devbox environment setup via Nushell..."
     # We use devbox run to execute commands *inside* the configured nix environment.
+    # Using < /dev/tty ensures interactive prompts (like gcloud auth) don't instantly fail by reading EOF.
     GreyStart
-    su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup"
+    if [ -c /dev/tty ]; then
+        su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup" < /dev/tty
+    else
+        su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup"
+    fi
     ColorReset
     Show 0 "Infrastructure setup completed."
 
