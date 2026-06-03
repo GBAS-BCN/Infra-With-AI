@@ -15,15 +15,15 @@ echo -e "\e[0m\c"
 
 # shellcheck disable=SC2016
 echo '
- /$$$$$$            /$$$$$$                           /$$      /$$ /$$   /$$     /$$                /$$$$$$  /$$$$$$
-|_  $$_/           /$$__  $$                        |$$  /$ | $$|__/  | $$   |$$               /$$__  $$|_  $$_/
-  | $$  /$$$$$$$ |$$  \__//$$$$$$ /$$$$$$         |$$ /$$$| $$/$$ /$$$$$$  |$$$$$$$        |$$  \ $$ |$$  
-  | $$ |$$__  $$| $$$$  /$$__ $$|____  $$/$$$$$$|$$/$$$$$$| $$|_  $$_/  | $$__  $$/$$$$$$|$$$$$$$$ |$$  
-  | $$ |$$  \ $$| $$_/  | $$ \__/ /$$$$$$$|______/|$$$$_  $$$$| $$ |$$    | $$ \$$|______/| $$__  $$ |$$  
-  | $$ |$$  | $$| $$   |$$      /$$__  $$       |$$$/ \  $$$| $$ |$$ /$$| $$ |$$        | $$ |$$  | $$  
- /$$$$$$| $$ |$$| $$   |$$     |  $$$$$$$       |$$/   \  $$| $$ | $$$$/| $$ |$$        | $$ |$$ /$$$$$$
+ /$$$$$$            /$$$$$$                                         /$$      /$$ /$$   /$$     /$$                /$$$$$$  /$$$$$$
+|_  $$_/           /$$__  $$                                       | $$  /$ | $$|__/  | $$    | $$               /$$__  $$|_  $$_/
+  | $$   /$$$$$$$ | $$  \__//$$$$$$  /$$$$$$         | $$ /$$$| $$ /$$ /$$$$$$  | $$$$$$$        | $$  \ $$  | $$  
+  | $$  | $$__  $$| $$$$   /$$__  $$|____  $$ /$$$$$$| $$/$$ $$ $$| $$|_  $$_/  | $$__  $$ /$$$$$$| $$$$$$$$  | $$  
+  | $$  | $$  \ $$| $$_/  | $$  \__/ /$$$$$$$|______/| $$$$_  $$$$| $$  | $$    | $$  \ $$|______/| $$__  $$  | $$  
+  | $$  | $$  | $$| $$    | $$      /$$__  $$        | $$$/ \  $$$| $$  | $$ /$$| $$  | $$        | $$  | $$  | $$  
+ /$$$$$$| $$  | $$| $$    | $$     |  $$$$$$$        | $$/   \  $$| $$  |  $$$$/| $$  | $$        | $$  | $$ /$$$$$$
 |______/|__/  |__/|__/    |__/      \_______/        |__/     \__/|__/   \___/  |__/  |__/        |__/  |__/|______/
-                                                                                
+                                                                                                                   
                   --- Automated Environment Setup ---
 '
 
@@ -58,11 +58,11 @@ source /etc/os-release
 # COLORS
 readonly COLOUR_RESET='\e[0m'
 readonly aCOLOUR=(
-    '\e[38;5;154m' # green  	| Lines, bullets and separators
-    '\e[1m'        # Bold white	| Main descriptions
-    '\e[90m'       # Grey		| Credits
-    '\e[91m'       # Red		| Update notifications Alert
-    '\e[33m'       # Yellow		| Emphasis
+    '\e[38;5;154m' # green      | Lines, bullets and separators
+    '\e[1m'        # Bold white | Main descriptions
+    '\e[90m'       # Grey       | Credits
+    '\e[91m'       # Red        | Update notifications Alert
+    '\e[33m'       # Yellow     | Emphasis
 )
 
 readonly GREEN_LINE=" ${aCOLOUR[0]}─────────────────────────────────────────────────────$COLOUR_RESET"
@@ -233,7 +233,6 @@ Clone_And_Setup_Repo() {
     fi
 
     # FAILSAFE: Ensure the standard user truly owns the repo and all Devbox cache/config folders.
-    # If the script failed halfway previously, these folders might be owned by root, causing "Permission Denied".
     chown -R "$REAL_USER:$REAL_USER" "$REPO_DIR"
     chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/devbox" 2>/dev/null || true
     chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/devbox" 2>/dev/null || true
@@ -245,23 +244,15 @@ Clone_And_Setup_Repo() {
     su - "$REAL_USER" -c "cd $REPO_DIR && chmod +x dot.nu"
 
     Show 2 "Ensuring a clean slate for the 'dot' Kubernetes cluster..."
-    # We use devbox run to execute kind delete cluster, then we verify it is truly gone.
-    su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- kind delete cluster --name dot >/dev/null 2>&1 || true"
-    
-    # Wait loop to ensure the Docker nodes are fully removed before proceeding
-    local MAX_RETRIES=10
-    local COUNT=0
-    while [ $COUNT -lt $MAX_RETRIES ]; do
-        if ! docker ps -a | grep -q "dot-control-plane"; then
-            break
-        fi
-        sleep 2
-        ((COUNT++))
-    done
+    # Force remove any existing kind nodes for the 'dot' cluster directly via Docker.
+    # This is much faster and more reliable than passing it through devbox/nix.
+    docker ps -a --filter "name=^dot-" --format "{{.ID}}" | xargs -r docker rm -f >/dev/null 2>&1
+
+    # Brief pause to let Docker register the removal
+    sleep 2
 
     Show 2 "Executing Devbox environment setup via Nushell..."
     # We use devbox run to execute commands *inside* the configured nix environment.
-    # We explicitly use the absolute path /usr/local/bin/devbox to avoid PATH misresolutions.
     GreyStart
     su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup"
     ColorReset
