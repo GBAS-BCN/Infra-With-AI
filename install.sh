@@ -16,12 +16,12 @@ echo -e "\e[0m\c"
 # shellcheck disable=SC2016
 echo '
  /$$$$$$            /$$$$$$                           /$$      /$$ /$$   /$$     /$$                /$$$$$$  /$$$$$$
-|_  $$_/           /$$__  $$                         | $$  /$ | $$|__/  | $$    | $$               /$$__  $$|_  $$_/
-  | $$   /$$$$$$$ | $$  \__//$$$$$$  /$$$$$$         | $$ /$$$| $$ /$$ /$$$$$$  | $$$$$$$         | $$  \ $$  | $$  
-  | $$  | $$__  $$| $$$$   /$$__  $$|____  $$ /$$$$$$| $$/$$ $$ $$| $$|_  $$_/  | $$__  $$ /$$$$$$| $$$$$$$$  | $$  
-  | $$  | $$  \ $$| $$_/  | $$  \__/ /$$$$$$$|______/| $$$$_  $$$$| $$  | $$    | $$  \ $$|______/| $$__  $$  | $$  
-  | $$  | $$  | $$| $$    | $$      /$$__  $$        | $$$/ \  $$$| $$  | $$ /$$| $$  | $$        | $$  | $$  | $$  
- /$$$$$$| $$  | $$| $$    | $$     |  $$$$$$$        | $$/   \  $$| $$  |  $$$$/| $$  | $$        | $$  | $$ /$$$$$$
+|_  $$_/           /$$__  $$                        |$$  /$ | $$|__/  | $$   |$$               /$$__  $$|_  $$_/
+  | $$  /$$$$$$$ |$$  \__//$$$$$$ /$$$$$$         |$$ /$$$| $$/$$ /$$$$$$  |$$$$$$$        |$$  \ $$ |$$  
+  | $$ |$$__  $$| $$$$  /$$__ $$|____  $$/$$$$$$|$$/$$$$$$| $$|_  $$_/  | $$__  $$/$$$$$$|$$$$$$$$ |$$  
+  | $$ |$$  \ $$| $$_/  | $$ \__/ /$$$$$$$|______/|$$$$_  $$$$| $$ |$$    | $$ \$$|______/| $$__  $$ |$$  
+  | $$ |$$  | $$| $$   |$$      /$$__  $$       |$$$/ \  $$$| $$ |$$ /$$| $$ |$$        | $$ |$$  | $$  
+ /$$$$$$| $$ |$$| $$   |$$     |  $$$$$$$       |$$/   \  $$| $$ | $$$$/| $$ |$$        | $$ |$$ /$$$$$$
 |______/|__/  |__/|__/    |__/      \_______/        |__/     \__/|__/   \___/  |__/  |__/        |__/  |__/|______/
                                                                                 
                   --- Automated Environment Setup ---
@@ -243,6 +243,10 @@ Clone_And_Setup_Repo() {
 
     Show 2 "Making setup script executable..."
     su - "$REAL_USER" -c "cd $REPO_DIR && chmod +x dot.nu"
+
+    Show 2 "Ensuring a clean slate for the 'dot' Kubernetes cluster..."
+    # We use devbox run to execute kind delete cluster just in case it already exists from a failed run.
+    su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- kind delete cluster --name dot >/dev/null 2>&1 || true"
 
     Show 2 "Executing Devbox environment setup via Nushell..."
     # We use devbox run to execute commands *inside* the configured nix environment.
