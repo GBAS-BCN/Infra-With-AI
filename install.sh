@@ -245,8 +245,19 @@ Clone_And_Setup_Repo() {
     su - "$REAL_USER" -c "cd $REPO_DIR && chmod +x dot.nu"
 
     Show 2 "Ensuring a clean slate for the 'dot' Kubernetes cluster..."
-    # We use devbox run to execute kind delete cluster just in case it already exists from a failed run.
+    # We use devbox run to execute kind delete cluster, then we verify it is truly gone.
     su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- kind delete cluster --name dot >/dev/null 2>&1 || true"
+    
+    # Wait loop to ensure the Docker nodes are fully removed before proceeding
+    local MAX_RETRIES=10
+    local COUNT=0
+    while [ $COUNT -lt $MAX_RETRIES ]; do
+        if ! docker ps -a | grep -q "dot-control-plane"; then
+            break
+        fi
+        sleep 2
+        ((COUNT++))
+    done
 
     Show 2 "Executing Devbox environment setup via Nushell..."
     # We use devbox run to execute commands *inside* the configured nix environment.
