@@ -7,7 +7,7 @@
 #   	$ wget -qO- https://your-domain.com/install.sh | sudo bash
 #
 #   This script strictly assumes a fresh Debian/Ubuntu environment.
-#   It will install Docker, Nix, Devbox, GH CLI, and setup the environment.
+#   It will install Docker, Nix, Devbox, GH CLI, kubectl, and setup the environment.
 #
 
 clear
@@ -164,6 +164,28 @@ Install_GH_CLI() {
     fi
 }
 
+Install_Kubectl() {
+    if [[ -x "$(command -v kubectl)" ]]; then
+        Show 0 "kubectl is already installed."
+    else
+        Show 2 "Installing kubectl..."
+        GreyStart
+        local ARCH
+        ARCH=$(uname -m)
+        if [[ "$ARCH" == "x86_64" ]]; then ARCH="amd64"; fi
+        if [[ "$ARCH" == "aarch64" ]]; then ARCH="arm64"; fi
+        
+        local KUBECTL_VERSION
+        KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
+        
+        curl -fsSL -o /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+        chmod 755 /usr/local/bin/kubectl
+        
+        ColorReset
+        Show 0 "kubectl installed successfully."
+    fi
+}
+
 Install_Devbox() {
     Show 2 "Verifying Nix package manager..."
     GreyStart
@@ -269,6 +291,7 @@ Update_Package_Resource
 Install_Base_Depends
 Install_Docker
 Install_GH_CLI
+Install_Kubectl
 Install_Devbox
 Clone_And_Setup_Repo
 Welcome_Banner
