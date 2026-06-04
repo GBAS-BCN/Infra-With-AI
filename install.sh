@@ -260,9 +260,8 @@ Clone_And_Setup_Repo() {
     Show 2 "Executing Devbox environment setup via Nushell..."
     # We use devbox run to execute commands *inside* the configured nix environment.
     GreyStart
-    # Force standard input back to the terminal so interactive prompts (like gcloud) pause and accept input.
-    exec < /dev/tty || true
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup"
+    # Re-bind standard input explicitly inside the unprivileged subshell so the 'Enter' key is forwarded to gcloud.
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup < /dev/tty"
     ColorReset
     Show 0 "Infrastructure setup completed."
 
