@@ -244,8 +244,10 @@ Clone_And_Setup_Repo() {
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && chmod +x dot.nu"
 
     Show 2 "Patching script timeouts for WSL environments..."
-    # Finds any timeout flags in the nushell script and extends them to 600s to prevent WSL cold-start timeouts
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && sed -i -E 's/timeout=[0-9]+[a-z]/timeout=600s/g' dot.nu"
+    # 1. Update any existing explicit timeouts (e.g. --timeout 90s or --timeout=90s) to 15 minutes
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && sed -i -E 's/--timeout[= ]*[0-9]+[a-zA-Z]+/--timeout=15m/g' dot.nu"
+    # 2. Inject a 15-minute timeout into ALL kubectl wait commands, just in case they were relying on the short 30s default
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && sed -i 's/kubectl wait /kubectl wait --timeout=15m /g' dot.nu"
 
     Show 2 "Ensuring a clean slate for the 'dot' Kubernetes cluster..."
     # Force remove any existing kind nodes for the 'dot' cluster directly via Docker.
@@ -257,8 +259,9 @@ Clone_And_Setup_Repo() {
 
     Show 2 "Executing Devbox environment setup via Nushell..."
     # We use devbox run to execute commands *inside* the configured nix environment.
-    # Using sudo -i -u natively preserves the TTY for interactive prompts (like gcloud auth).
     GreyStart
+    # Force standard input back to the terminal so interactive prompts (like gcloud) pause and accept input.
+    exec < /dev/tty || true
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup"
     ColorReset
     Show 0 "Infrastructure setup completed."
