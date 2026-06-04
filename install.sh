@@ -226,10 +226,10 @@ Clone_And_Setup_Repo() {
 
     if [[ -d "$REPO_DIR" ]]; then
         Show 3 "Directory $REPO_DIR already exists. Pulling latest changes..."
-        su - "$REAL_USER" -c "cd $REPO_DIR && git pull"
+        sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git pull"
     else
         Show 2 "Cloning infra-with-ai..."
-        su - "$REAL_USER" -c "git clone https://github.com/vfarcic/infra-with-ai $REPO_DIR"
+        sudo -i -u "$REAL_USER" bash -c "git clone https://github.com/vfarcic/infra-with-ai $REPO_DIR"
     fi
 
     # FAILSAFE: Ensure the standard user truly owns the repo and all Devbox cache/config folders.
@@ -241,7 +241,7 @@ Clone_And_Setup_Repo() {
     Show 0 "Repository prepared."
 
     Show 2 "Making setup script executable..."
-    su - "$REAL_USER" -c "cd $REPO_DIR && chmod +x dot.nu"
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && chmod +x dot.nu"
 
     Show 2 "Ensuring a clean slate for the 'dot' Kubernetes cluster..."
     # Force remove any existing kind nodes for the 'dot' cluster directly via Docker.
@@ -253,18 +253,14 @@ Clone_And_Setup_Repo() {
 
     Show 2 "Executing Devbox environment setup via Nushell..."
     # We use devbox run to execute commands *inside* the configured nix environment.
-    # Using < /dev/tty ensures interactive prompts (like gcloud auth) don't instantly fail by reading EOF.
+    # Using sudo -i -u natively preserves the TTY for interactive prompts (like gcloud auth).
     GreyStart
-    if [ -c /dev/tty ]; then
-        su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup" < /dev/tty
-    else
-        su - "$REAL_USER" -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup"
-    fi
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup"
     ColorReset
     Show 0 "Infrastructure setup completed."
 
     Show 2 "Switching to 'agents' git branch..."
-    su - "$REAL_USER" -c "cd $REPO_DIR && git switch agents"
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git switch agents"
     Show 0 "Git branch switched successfully."
 }
 
