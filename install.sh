@@ -264,11 +264,16 @@ Clone_And_Setup_Repo() {
     GreyStart
     # Re-bind standard input explicitly inside the unprivileged subshell so the 'Enter' key is forwarded to gcloud.
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup < /dev/tty"
+    
+    # Explicitly export the Kubernetes configuration so the user's default environment can instantly connect
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && /usr/local/bin/devbox run -- kind export kubeconfig --name dot >/dev/null 2>&1"
+    
     ColorReset
     Show 0 "Infrastructure setup completed."
 
     Show 2 "Switching to 'agents' git branch..."
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git switch agents"
+    # Forcefully reset the script patches (timeouts/browsers) so git allows us to cleanly switch branches
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git reset --hard HEAD >/dev/null 2>&1 && git switch agents"
     Show 0 "Git branch switched successfully."
 }
 
