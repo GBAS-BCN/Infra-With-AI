@@ -225,8 +225,9 @@ Clone_And_Setup_Repo() {
     Show 2 "Setting up infra-with-ai repository..."
 
     if [[ -d "$REPO_DIR" ]]; then
-        Show 3 "Directory $REPO_DIR already exists. Pulling latest changes..."
-        sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git pull"
+        Show 3 "Directory $REPO_DIR already exists. Resetting to main branch and pulling latest changes..."
+        # If the script previously completed, we might be on the 'agents' branch. We must switch back to 'main' for setup!
+        sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git reset --hard HEAD && git switch main && git pull"
     else
         Show 2 "Cloning infra-with-ai..."
         sudo -i -u "$REAL_USER" bash -c "git clone https://github.com/vfarcic/infra-with-ai $REPO_DIR"
