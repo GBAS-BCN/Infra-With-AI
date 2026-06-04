@@ -122,9 +122,9 @@ Update_Package_Resource() {
 }
 
 Install_Base_Depends() {
-    Show 2 "Installing base dependencies (git, curl, wget, jq, unzip)..."
+    Show 2 "Installing base dependencies (git, curl, wget, jq, unzip, apache2-utils)..."
     GreyStart
-    apt-get install -y -qq git curl wget jq unzip ca-certificates gnupg lsb-release xz-utils
+    apt-get install -y -qq git curl wget jq unzip ca-certificates gnupg lsb-release xz-utils apache2-utils
     ColorReset
     Show 0 "Base dependencies installed."
 }
