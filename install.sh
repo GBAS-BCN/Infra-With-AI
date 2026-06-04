@@ -243,11 +243,13 @@ Clone_And_Setup_Repo() {
     Show 2 "Making setup script executable..."
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && chmod +x dot.nu"
 
-    Show 2 "Patching script timeouts for WSL environments..."
+    Show 2 "Patching script timeouts and WSL browser quirks..."
     # 1. Update any existing explicit timeouts (e.g. --timeout 90s or --timeout=90s) to 15 minutes
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && sed -i -E 's/--timeout[= ]*[0-9]+[a-zA-Z]+/--timeout=15m/g' dot.nu"
-    # 2. Inject a 15-minute timeout into ALL kubectl wait commands, just in case they were relying on the short 30s default
+    # 2. Inject a 15-minute timeout into ALL kubectl wait commands
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && sed -i 's/kubectl wait /kubectl wait --timeout=15m /g' dot.nu"
+    # 3. Prevent WSL from crashing when trying to auto-open browsers. Replace 'start' with 'print'.
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i 's/start \$\"https/print \$\"Please manually open this link in your browser to proceed:\\nhttps/g' {} +"
 
     Show 2 "Ensuring a clean slate for the 'dot' Kubernetes cluster..."
     # Force remove any existing kind nodes for the 'dot' cluster directly via Docker.
