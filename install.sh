@@ -243,6 +243,10 @@ Clone_And_Setup_Repo() {
     Show 2 "Making setup script executable..."
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && chmod +x dot.nu"
 
+    Show 2 "Patching script timeouts for WSL environments..."
+    # Finds any timeout flags in the nushell script and extends them to 600s to prevent WSL cold-start timeouts
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && sed -i -E 's/timeout=[0-9]+[a-z]/timeout=600s/g' dot.nu"
+
     Show 2 "Ensuring a clean slate for the 'dot' Kubernetes cluster..."
     # Force remove any existing kind nodes for the 'dot' cluster directly via Docker.
     # This is much faster and more reliable than passing it through devbox/nix.
