@@ -254,10 +254,10 @@ Clone_And_Setup_Repo() {
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && chmod +x dot.nu"
 
     Show 2 "Patching script timeouts and WSL browser quirks..."
-    # 1. Update any existing explicit timeouts (e.g. --timeout 90s or --timeout=90s) to 15 minutes
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && sed -i -E 's/--timeout[= ]*[0-9]+[a-zA-Z]+/--timeout=15m/g' dot.nu"
-    # 2. Inject a 15-minute timeout into ALL kubectl wait commands
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && sed -i 's/kubectl wait /kubectl wait --timeout=15m /g' dot.nu"
+    # 1. Update any existing explicit timeouts (e.g. --timeout 90s or --timeout=90s) to 15 minutes across ALL .nu files
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i -E 's/--timeout[= ]*[0-9]+[a-zA-Z]+/--timeout=15m/g' {} +"
+    # 2. Inject a 15-minute timeout into ALL kubectl wait commands across ALL .nu files
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i 's/kubectl wait /kubectl wait --timeout=15m /g' {} +"
     # 3. Prevent WSL from crashing when trying to auto-open browsers. Replace 'start' with 'print'.
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i 's/start \$\"https/print \$\"Please manually open this link in your browser to proceed:\\nhttps/g' {} +"
 
@@ -270,6 +270,10 @@ Clone_And_Setup_Repo() {
     sleep 2
 
     Show 2 "Executing Devbox environment setup via Nushell..."
+    # Grant standard user temporary read/write access to the root TTY so interactive prompts (like gcloud) don't get permission denied
+    TTY_FILE=$(tty)
+    [ -n "$TTY_FILE" ] && chmod 666 "$TTY_FILE" || true
+
     # We use devbox run to execute commands *inside* the configured nix environment.
     GreyStart
     # Re-bind standard input explicitly inside the unprivileged subshell so the 'Enter' key is forwarded to gcloud.
