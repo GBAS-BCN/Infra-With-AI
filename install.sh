@@ -271,11 +271,9 @@ Clone_And_Setup_Repo() {
 
     Show 2 "Executing Devbox environment setup via Nushell..."
     
-    # Safely grant standard user temporary read/write access to the root TTY
-    # We use an if-statement so that if 'tty' fails, it doesn't trigger 'set -e'
-    if TTY_FILE=$(tty 2>/dev/null); then
-        chmod 666 "$TTY_FILE" 2>/dev/null || true
-    fi
+    # Safely grant standard user temporary read/write access to the root terminal input 
+    # We do this directly to /dev/tty using '|| true' to guarantee it never crashes the script
+    chmod 666 /dev/tty 2>/dev/null || true
 
     # We use devbox run to execute commands *inside* the configured nix environment.
     GreyStart
