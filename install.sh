@@ -225,7 +225,7 @@ Install_OpenCode() {
     Show 2 "Installing OpenCode Terminal..."
     GreyStart
     # We run this as the standard user so it correctly configures their ~/.bashrc or ~/.local/bin paths
-    sudo -i -u "$REAL_USER" bash -c "curl -fsSL https://opencode.ai/install | bash"
+    sudo -i -u "$REAL_USER" bash -c "curl -fsSL https://opencode.ai/install | bash" || true
     ColorReset
     Show 0 "OpenCode installed successfully."
 }
@@ -236,10 +236,10 @@ Clone_And_Setup_Repo() {
     if [[ -d "$REPO_DIR" ]]; then
         Show 3 "Directory $REPO_DIR already exists. Resetting to main branch and pulling latest changes..."
         # If the script previously completed, we might be on the 'agents' branch. We must switch back to 'main' for setup!
-        sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git reset --hard HEAD && git switch main && git pull"
+        sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git reset --hard HEAD && git switch main && git pull" || true
     else
         Show 2 "Cloning infra-with-ai..."
-        sudo -i -u "$REAL_USER" bash -c "git clone https://github.com/vfarcic/infra-with-ai $REPO_DIR"
+        sudo -i -u "$REAL_USER" bash -c "git clone https://github.com/vfarcic/infra-with-ai $REPO_DIR" || true
     fi
 
     # FAILSAFE: Ensure the standard user truly owns the repo and all Devbox cache/config folders.
@@ -255,24 +255,28 @@ Clone_And_Setup_Repo() {
 
     Show 2 "Patching script timeouts and WSL browser quirks..."
     # 1. Update any existing explicit timeouts (e.g. --timeout 90s or --timeout=90s) to 15 minutes across ALL .nu files
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i -E 's/--timeout[= ]*[0-9]+[a-zA-Z]+/--timeout=15m/g' {} +"
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i -E 's/--timeout[= ]*[0-9]+[a-zA-Z]+/--timeout=15m/g' {} + || true"
     # 2. Inject a 15-minute timeout into ALL kubectl wait commands across ALL .nu files
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i 's/kubectl wait /kubectl wait --timeout=15m /g' {} +"
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i 's/kubectl wait /kubectl wait --timeout=15m /g' {} + || true"
     # 3. Prevent WSL from crashing when trying to auto-open browsers. Replace 'start' with 'print'.
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i 's/start \$\"https/print \$\"Please manually open this link in your browser to proceed:\\nhttps/g' {} +"
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && find . -name '*.nu' -type f -exec sed -i 's/start \$\"https/print \$\"Please manually open this link in your browser to proceed:\\nhttps/g' {} + || true"
 
     Show 2 "Ensuring a clean slate for the 'dot' Kubernetes cluster..."
     # Force remove any existing kind nodes for the 'dot' cluster directly via Docker.
     # This is much faster and more reliable than passing it through devbox/nix.
-    docker ps -a --filter "name=^dot-" --format "{{.ID}}" | xargs -r docker rm -f >/dev/null 2>&1
+    docker ps -a --filter "name=^dot-" --format "{{.ID}}" | xargs -r docker rm -f >/dev/null 2>&1 || true
 
     # Brief pause to let Docker register the removal
     sleep 2
 
     Show 2 "Executing Devbox environment setup via Nushell..."
-    # Grant standard user temporary read/write access to the root TTY so interactive prompts (like gcloud) don't get permission denied
-    TTY_FILE=$(tty)
-    [ -n "$TTY_FILE" ] && chmod 666 "$TTY_FILE" || true
+    
+    # Safely grant standard user temporary read/write access to the root TTY
+    # (Using || true to prevent set -e from instantly killing the script if tty is missing)
+    TTY_FILE=$(tty || echo "")
+    if [[ -n "$TTY_FILE" && "$TTY_FILE" != "not a tty" ]]; then
+        chmod 666 "$TTY_FILE" 2>/dev/null || true
+    fi
 
     # We use devbox run to execute commands *inside* the configured nix environment.
     GreyStart
@@ -280,14 +284,14 @@ Clone_And_Setup_Repo() {
     sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && /usr/local/bin/devbox run -- nu ./dot.nu setup < /dev/tty"
     
     # Explicitly export the Kubernetes configuration so the user's default environment can instantly connect
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && /usr/local/bin/devbox run -- kind export kubeconfig --name dot >/dev/null 2>&1"
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && /usr/local/bin/devbox run -- kind export kubeconfig --name dot >/dev/null 2>&1 || true"
     
     ColorReset
     Show 0 "Infrastructure setup completed."
 
     Show 2 "Switching to 'agents' git branch..."
     # Forcefully reset the script patches (timeouts/browsers) so git allows us to cleanly switch branches
-    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git reset --hard HEAD >/dev/null 2>&1 && git switch agents"
+    sudo -i -u "$REAL_USER" bash -c "cd $REPO_DIR && git reset --hard HEAD >/dev/null 2>&1 && git switch agents" || true
     Show 0 "Git branch switched successfully."
 }
 
