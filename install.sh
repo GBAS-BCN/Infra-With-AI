@@ -221,6 +221,15 @@ Install_Devbox() {
     Show 0 "Devbox installed successfully."
 }
 
+Install_OpenCode() {
+    Show 2 "Installing OpenCode Terminal..."
+    GreyStart
+    # We run this as the standard user so it correctly configures their ~/.bashrc or ~/.local/bin paths
+    sudo -i -u "$REAL_USER" bash -c "curl -fsSL https://opencode.ai/install | bash"
+    ColorReset
+    Show 0 "OpenCode installed successfully."
+}
+
 Clone_And_Setup_Repo() {
     Show 2 "Setting up infra-with-ai repository..."
 
@@ -286,14 +295,12 @@ Welcome_Banner() {
     echo -e " ${aCOLOUR[3]}$REPO_DIR${COLOUR_RESET}"
     echo -e ""
     echo -e " ${aCOLOUR[4]}IMPORTANT NEXT STEPS:${COLOUR_RESET}"
-    echo -e " 1. OpenCode Terminal must be installed manually on your local system."
-    echo -e "    Download it here: ${aCOLOUR[3]}https://opencode.ai/download${COLOUR_RESET}"
-    echo -e " 2. Once OpenCode is installed, log into your new environment as '$REAL_USER'."
+    echo -e " 1. Log into your new environment as '$REAL_USER'."
     echo -e "    Since we added you to the docker group, you may need to log out and log back in."
-    echo -e " 3. Navigate to the folder: ${aCOLOUR[2]}cd ~/infra-with-ai${COLOUR_RESET}"
-    echo -e " 4. Open Devbox shell:      ${aCOLOUR[2]}devbox shell${COLOUR_RESET}"
-    echo -e " 5. Load Env vars:          ${aCOLOUR[2]}source .env${COLOUR_RESET}"
-    echo -e " 6. Open the terminal app:  ${aCOLOUR[2]}opencode${COLOUR_RESET}"
+    echo -e " 2. Navigate to the folder: ${aCOLOUR[2]}cd ~/infra-with-ai${COLOUR_RESET}"
+    echo -e " 3. Open Devbox shell:      ${aCOLOUR[2]}devbox shell${COLOUR_RESET}"
+    echo -e " 4. Load Env vars:          ${aCOLOUR[2]}source .env${COLOUR_RESET}"
+    echo -e " 5. Open the terminal app:  ${aCOLOUR[2]}opencode${COLOUR_RESET}"
     echo -e ""
     echo -e " ${aCOLOUR[1]}To Destroy the Environment later, run:${COLOUR_RESET}"
     echo -e "   cd ~/infra-with-ai"
@@ -315,6 +322,7 @@ Install_GH_CLI
 Install_Kubectl
 Install_Devbox
 Clone_And_Setup_Repo
+Install_OpenCode
 Welcome_Banner
 
 exit 0
